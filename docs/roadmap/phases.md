@@ -6,7 +6,7 @@
 
 | Фаза | Что делаем | Статус | Детали в |
 |---|---|---|---|
-| **Ф.0 Фундамент** | docs-структура, перенос плана, `.env.example`, git | 🟡 | этот файл |
+| **Ф.0 Фундамент** | docs-структура, перенос плана, `.env.example`, git | ✅ | этот файл |
 | **Ф.1 Скелет** | Next.js + `/api/scan`, Playwright открывает URL → `{title, cookies}` | ⬜ | `modules/scanner.md` |
 | **Ф.2 Сбор улик** | cookies/storage/network/trackers/consentBanner/links/tls | ⬜ | `modules/scanner.md` |
 | **Ф.3 Движок правил** | 8 правил v1 → `Finding[]` + severity | ⬜ | `modules/rules.md` |
