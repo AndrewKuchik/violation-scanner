@@ -1,13 +1,14 @@
 // Запуск/остановка headless chromium. Держим настройки браузера в одном месте,
 // чтобы уменьшить бот-детекцию и вести себя как реальный посетитель.
 //
-// ДВА РЕЖИМА (для деплоя на Vercel, docs/roadmap/phases.md):
+// ДВА РЕЖИМА (для деплоя на Vercel, docs/deploy-vercel.md):
 //   • Локально / обычный сервер → полный пакет `playwright` со своим chromium.
 //   • Serverless (Vercel/AWS Lambda) → `playwright-core` + `@sparticuz/chromium`
-//     (специальная лёгкая сборка chromium, которая помещается в лимиты функции).
-// Определяем окружение по env; облачные пакеты грузим ДИНАМИЧЕСКИ, чтобы локальная
-// разработка от них не зависела.
-import { chromium as playwrightChromium, type Browser, type BrowserContext } from 'playwright';
+//     (лёгкая сборка chromium, помещается в лимиты функции).
+// ВАЖНО: импорты браузерных пакетов — ДИНАМИЧЕСКИЕ (внутри функции), чтобы в облаке
+// НЕ подгружался полный `playwright` (он тянет browsers.json и падает в serverless).
+// Типы берём из `playwright-core` — они type-only и в рантайм не попадают.
+import type { Browser, BrowserContext } from 'playwright-core';
 
 /** UA реального Chrome — снижает шанс, что сайт отдаст «headless»-заглушку. */
 const REALISTIC_UA =
@@ -17,8 +18,8 @@ const REALISTIC_UA =
 /** Мы в бессерверном окружении (Vercel / AWS Lambda)? Там нужен @sparticuz/chromium. */
 const IS_SERVERLESS = Boolean(process.env.VERCEL) || Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
 
-/** Флаги chromium, общие для обоих режимов (меньше бот-детекции, стабильнее в контейнере). */
-const COMMON_ARGS = [
+/** Флаги chromium для локального режима (меньше бот-детекции, стабильнее в контейнере). */
+const LOCAL_ARGS = [
   '--no-sandbox',
   '--disable-blink-features=AutomationControlled',
   '--disable-dev-shm-usage',
@@ -26,24 +27,23 @@ const COMMON_ARGS = [
 
 export async function launchBrowser(): Promise<Browser> {
   if (IS_SERVERLESS) {
-    // Динамический импорт: эти пакеты нужны ТОЛЬКО в облаке, локально их не тянем.
+    // Динамические импорты: эти пакеты нужны ТОЛЬКО в облаке.
     const sparticuz = (await import('@sparticuz/chromium')).default;
-    const { chromium: core } = await import('playwright-core');
+    const { chromium } = await import('playwright-core');
     const executablePath = await sparticuz.executablePath();
-    const browser = await core.launch({
+    return chromium.launch({
       // sparticuz.args уже включает --no-sandbox/--disable-dev-shm-usage и оптимизации под Lambda.
       args: [...sparticuz.args, '--disable-blink-features=AutomationControlled'],
       executablePath,
       headless: true,
     });
-    // Типы playwright и playwright-core структурно совпадают (playwright зависит от core).
-    return browser as unknown as Browser;
   }
 
-  return playwrightChromium.launch({
-    headless: true,
-    args: COMMON_ARGS,
-  });
+  // Локально грузим ПОЛНЫЙ playwright динамически — в облаке этот путь не выполняется,
+  // поэтому его тяжёлые файлы (browsers.json и т.п.) в serverless не требуются.
+  const { chromium } = await import('playwright');
+  // Типы playwright и playwright-core структурно совпадают (playwright зависит от core).
+  return chromium.launch({ headless: true, args: LOCAL_ARGS }) as unknown as Browser;
 }
 
 /**
