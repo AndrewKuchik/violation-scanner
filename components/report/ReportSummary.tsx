@@ -1,5 +1,6 @@
 // Сводка отчёта: «взгляд с высоты» перед списком находок (UX-принцип №1).
-// Числа по severity, общий диапазон риска и строка про допущение о размере компании.
+// Числа по severity, общий диапазон риска, список «что мы проверили» (прозрачность)
+// и строка про допущение о размере компании.
 import type { Report, Severity, CompanySizeTier } from '@/lib/scanner/types';
 import { FineRangeBox } from './FineRangeBox';
 
@@ -24,6 +25,26 @@ const SEVERITY_META: {
   { key: 'low', label: 'Низкий', dotClass: 'bg-zinc-400', textClass: 'text-zinc-600 dark:text-zinc-400' },
 ];
 
+// Что именно проверяет сканер — статический список. Показываем всегда, чтобы
+// 0 находок не выглядело как «ничего не сделал».
+const CHECKLIST: string[] = [
+  'Куки, поставленные до согласия',
+  'Известные трекеры (аналитика/реклама) до согласия',
+  'Наличие баннера согласия',
+  'Кнопки «Принять»/«Отказаться» и их равноправность',
+  'Заранее отмеченные галочки согласия',
+  'Наличие политики конфиденциальности',
+  'HTTPS и шифрование соединения',
+];
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+      {children}
+    </h3>
+  );
+}
+
 export function ReportSummary({
   summary,
   input,
@@ -35,7 +56,7 @@ export function ReportSummary({
   const tierLabel = TIER_LABELS[input.companySizeTier] ?? input.companySizeTier;
 
   return (
-    <section className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+    <section className="space-y-5 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Сводка</h2>
         <span className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -46,9 +67,20 @@ export function ReportSummary({
 
       {totalFindings === 0 ? (
         // Осторожная формулировка: отсутствие находок ≠ обещание соответствия закону.
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Явных нарушений не обнаружено. Это не гарантия соответствия закону — см. дисклеймер выше.
-        </p>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/60 dark:bg-emerald-950/40">
+          <div className="flex items-center gap-2">
+            <span aria-hidden="true" className="text-lg leading-none">
+              ✓
+            </span>
+            <p className="font-semibold text-emerald-900 dark:text-emerald-200">
+              По проверенным пунктам явных нарушений не найдено
+            </p>
+          </div>
+          <p className="mt-2 text-sm leading-relaxed text-emerald-800 dark:text-emerald-300">
+            Это не гарантия полного соответствия закону — проверяется ограниченный набор пунктов
+            (см. список ниже).
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {SEVERITY_META.map((s) => (
@@ -69,8 +101,29 @@ export function ReportSummary({
       {/* Общий диапазон риска — только если он посчитан. */}
       {overallRange && <FineRangeBox range={overallRange} />}
 
+      {/* Прозрачность: что именно проверил сканер (чек-лист). */}
+      <div>
+        <SectionTitle>Что мы проверили</SectionTitle>
+        <ul className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
+          {CHECKLIST.map((item, i) => (
+            <li
+              key={i}
+              className="flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300"
+            >
+              <span
+                aria-hidden="true"
+                className="mt-0.5 shrink-0 font-semibold text-emerald-600 dark:text-emerald-400"
+              >
+                ✓
+              </span>
+              <span className="leading-relaxed">{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
       {/* Допущение о размере компании: без интерактивности, достаточно текста. */}
-      <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+      <p className="border-t border-zinc-200 pt-4 text-xs leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
         Оценка сделана в допущении:{' '}
         <span className="font-medium text-zinc-700 dark:text-zinc-300">{tierLabel}</span>
         {input.repeatOffender ? ', повторное нарушение' : ', нарушение впервые'}

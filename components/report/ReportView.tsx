@@ -1,7 +1,8 @@
 'use client';
 
 // Верхний компонент отчёта — его импортирует страница отчёта.
-// Композиция: дисклеймер (ВВЕРХУ) → шапка → плашка неполноты → сводка → находки.
+// Композиция: ссылка «Новая проверка» → дисклеймер (ВВЕРХУ) → шапка →
+// плашка неполноты → сводка → находки.
 import { useEffect, useState } from 'react';
 import type { Report } from '@/lib/scanner/types';
 import { DisclaimerBanner } from './DisclaimerBanner';
@@ -19,19 +20,30 @@ export function ReportView({ report }: { report: Report }) {
     setScannedLabel(formatDateLocal(meta.scannedAt));
   }, [meta.scannedAt]);
 
+  const targetUrl = meta.finalUrl || meta.url;
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
+      {/* Возврат к форме живёт в обёртке страницы (app/report/page.tsx) — здесь не дублируем. */}
+
       {/* Дисклеймер закреплён ВВЕРХУ (юридическое требование). */}
       <DisclaimerBanner text={disclaimer} />
 
       {/* Шапка: что и когда сканировали. */}
       <header className="space-y-1">
-        <h1 className="break-all text-xl font-bold text-zinc-900 dark:text-zinc-100">
+        <h1 className="break-words text-2xl font-bold text-zinc-900 dark:text-zinc-100">
           {meta.title || meta.url}
         </h1>
-        <p className="break-all text-sm text-zinc-500 dark:text-zinc-400">
-          {meta.finalUrl || meta.url}
-        </p>
+        {targetUrl && (
+          <a
+            href={targetUrl}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="inline-block break-all text-sm text-blue-600 underline-offset-2 hover:underline dark:text-blue-400"
+          >
+            {targetUrl}
+          </a>
+        )}
         {scannedLabel && (
           <p className="text-xs text-zinc-400 dark:text-zinc-500">Проверено: {scannedLabel}</p>
         )}
@@ -39,15 +51,21 @@ export function ReportView({ report }: { report: Report }) {
 
       {/* Честность о неполноте скана (не молчаливое «нарушений нет»). */}
       {incomplete && (
-        <div className="flex items-start gap-3 rounded-lg border border-orange-300 bg-orange-50 p-4 text-orange-900 dark:border-orange-800/60 dark:bg-orange-950/50 dark:text-orange-100">
+        <div className="flex items-start gap-3 rounded-xl border border-orange-300 bg-orange-50 p-4 shadow-sm dark:border-orange-800/60 dark:bg-orange-950/50">
           <span aria-hidden="true" className="mt-0.5 shrink-0 text-lg leading-none">
-            ⚠
+            ⚠️
           </span>
-          <p className="text-sm leading-relaxed">
-            Скан мог быть неполным
-            {incompleteReason ? `: ${incompleteReason}` : ' — часть проверок могла не выполниться'}.
-            Поэтому отсутствие находок не означает, что нарушений нет.
-          </p>
+          <div className="min-w-0">
+            <div className="mb-0.5 text-xs font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-400">
+              Скан мог быть неполным
+            </div>
+            <p className="text-sm leading-relaxed text-orange-900 dark:text-orange-100">
+              {incompleteReason
+                ? incompleteReason
+                : 'Часть проверок могла не выполниться.'}{' '}
+              Поэтому отсутствие находок не означает, что нарушений нет.
+            </p>
+          </div>
         </div>
       )}
 
