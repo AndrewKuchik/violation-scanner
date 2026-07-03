@@ -19,11 +19,20 @@ import {
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+/**
+ * Максимум времени серверной функции на Vercel (Hobby-план — до 60 с).
+ * Локально/на своём сервере игнорируется. Наш скан должен успеть внутри.
+ */
+export const maxDuration = 60;
 
 const VALID_TIERS: CompanySizeTier[] = ['solo', 'small', 'sme', 'large'];
 
-/** Верхний предел на один скан — предохранитель от зависаний. */
-const SCAN_TIMEOUT_MS = 75_000;
+/**
+ * Верхний предел на один скан — предохранитель от зависаний. На Vercel держим
+ * ниже maxDuration (60 с), чтобы отдать честную ошибку РАНЬШЕ, чем платформа
+ * убьёт функцию без ответа. Локально — прежние 75 с.
+ */
+const SCAN_TIMEOUT_MS = process.env.VERCEL ? 52_000 : 75_000;
 
 /** Ограничивает промис по времени, гарантированно очищая таймер. */
 function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
