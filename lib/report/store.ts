@@ -31,7 +31,17 @@ function newId(): string {
  * Если шаринг выключен или произошёл сбой — возвращает null (не кидает).
  */
 export async function saveReport(report: Report): Promise<string | null> {
-  if (!isShareEnabled()) return null;
+  return (await saveReportDebug(report)).id;
+}
+
+/**
+ * Как saveReport, но возвращает причину сбоя — для временной диагностики на боевом
+ * (подключён ли токен и, если запись упала, текст ошибки).
+ */
+export async function saveReportDebug(
+  report: Report,
+): Promise<{ id: string | null; enabled: boolean; error: string | null }> {
+  if (!isShareEnabled()) return { id: null, enabled: false, error: null };
   try {
     const id = newId();
     await put(`${PREFIX}${id}.json`, JSON.stringify(report), {
@@ -39,9 +49,9 @@ export async function saveReport(report: Report): Promise<string | null> {
       addRandomSuffix: false, // предсказуемый путь reports/<id>.json
       contentType: 'application/json',
     });
-    return id;
-  } catch {
-    return null;
+    return { id, enabled: true, error: null };
+  } catch (e) {
+    return { id: null, enabled: true, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
