@@ -10,7 +10,7 @@ import { refineSeverity } from '@/lib/scoring/severity';
 import { computeFineRange } from '@/lib/scoring/fineRange';
 import { isAiEnabled, enrichFindings } from '@/lib/ai/explain';
 import { buildReport } from '@/lib/report/buildReport';
-import { saveReportDebug, blobTokenKeyNames } from '@/lib/report/store';
+import { saveReport } from '@/lib/report/store';
 import {
   DEFAULT_COMPANY_TIER,
   DEFAULT_REPEAT_OFFENDER,
@@ -108,16 +108,9 @@ export async function POST(request: Request) {
 
     // Сохраняем отчёт для публичной ссылки (если подключён Blob). При выключенном
     // шаринге / сбое — shareId = null, клиент откроет отчёт по-старому (sessionStorage).
-    const saved = await saveReportDebug(report);
-    const shareId = saved.id;
+    const shareId = await saveReport(report);
 
-    // ВРЕМЕННО: диагностика шаринга на боевом (убрать после проверки).
-    return NextResponse.json({
-      ok: true,
-      report,
-      shareId,
-      shareDebug: { enabled: saved.enabled, error: saved.error, envKeys: blobTokenKeyNames() },
-    });
+    return NextResponse.json({ ok: true, report, shareId });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : 'Скан не удался.' },
