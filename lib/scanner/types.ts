@@ -153,6 +153,70 @@ export interface TlsEvidence {
   insecureRequests: string[];
 }
 
+// ---------------------------------------------------------------------------
+// Расширенные улики (области A–H из docs/product/legal-requirements.md)
+// Все — по наличию/отсутствию (не корректность), бесплатные эвристики.
+// ---------------------------------------------------------------------------
+
+/**
+ * Классификация типа сайта. Нужна, чтобы «коммерческие» требования (реквизиты,
+ * потреб-право) НЕ показывать личным сайтам/визиткам — иначе введём в заблуждение.
+ */
+export interface SiteTypeEvidence {
+  /** Признаки коммерческой деятельности (продажа товаров/услуг, бронирование, цены). */
+  commercial: boolean;
+  /** Признаки интернет-магазина (корзина/checkout/каталог/платёжка). */
+  ecommerce: boolean;
+  confidence: 'strong' | 'weak' | 'none';
+  /** Найденные сигналы для «почему так решили» (напр. «цены», «корзина», «SIA»). */
+  signals: string[];
+}
+
+/** Реквизиты поставщика (imprint) — e-Commerce Dir. ст.5 / ISPL §4. */
+export interface ImprintEvidence {
+  companyName: boolean;
+  address: boolean;
+  email: boolean;
+  /** Регистрационный номер (Uzņēmumu reģistrs, 11 цифр / «reģ. Nr»). */
+  registrationNumber: boolean;
+  /** Номер НДС (LV + 11 цифр / «PVN»). */
+  vatNumber: boolean;
+  /** Примеры найденного (для показа «где»). */
+  found: { kind: 'company' | 'address' | 'email' | 'reg' | 'vat'; sample: string }[];
+}
+
+/** Доступность (EAA) — заявление о доступности + базовые авто-сигналы. */
+export interface AccessibilityEvidence {
+  statementLink: boolean;
+  statementHref?: string | null;
+  /** <html lang="…"> задан. */
+  htmlLangSet: boolean;
+  /** Картинок без alt (частичный сигнал WCAG, не полное соответствие). */
+  imagesMissingAlt: number;
+  imagesTotal: number;
+}
+
+/** Латышская версия — Valsts valodas likums. */
+export interface LanguageEvidence {
+  htmlLang: string | null;
+  latvianAvailable: boolean;
+  hasLanguageSwitcher: boolean;
+}
+
+/** Потребительские сигналы: устаревшая ODR-ссылка, возврат, прозрачность цены. */
+export interface ConsumerEvidence {
+  /** Ссылка на устаревшую ODR-платформу ЕС (отменена с 20.07.2025). */
+  staleOdrLink: boolean;
+  staleOdrHref?: string | null;
+  /** Найдена страница/ссылка о возврате/праве отказа. */
+  returnPolicy: boolean;
+  /** Упоминание «14 дней»/atteikuma tiesības рядом с возвратом. */
+  mentions14Days: boolean;
+  pricesVisible: boolean;
+  /** Рядом с ценой есть указание налога (НДС/PVN/ar PVN/incl.). */
+  priceTaxWording: boolean;
+}
+
 /** Метаданные скана. Заполняются capture.ts + route (scannedAt/duration). */
 export interface ScanMeta {
   /** Запрошенный URL. */
@@ -184,6 +248,12 @@ export interface ScanEvidence {
   consentBanner: ConsentBannerEvidence;
   links: LinksEvidence;
   tls: TlsEvidence;
+  // --- Расширенные области (A–H) ---
+  siteType: SiteTypeEvidence;
+  imprint: ImprintEvidence;
+  accessibility: AccessibilityEvidence;
+  language: LanguageEvidence;
+  consumer: ConsumerEvidence;
 }
 
 // ---------------------------------------------------------------------------
@@ -249,8 +319,20 @@ export interface Finding {
   evidence: EvidencePointer[];
   /** Конкретные шаги по исправлению. */
   remediation: string[];
-  /** Заполняется слоем scoring. */
+  /** Заполняется слоем scoring (только для денежных находок, monetary !== false). */
   fineRange?: FineRange;
+  /**
+   * Если false — scoring НЕ считает € (нарушение вне сферы GDPR/DVI, напр. PTAC).
+   * undefined/true — денежная находка (по умолчанию). Ставится правилом.
+   */
+  monetary?: boolean;
+  /**
+   * Качественная оценка последствий, когда нет € (напр. «Контролирует PTAC —
+   * риск проверки/предписания»). Показывается вместо FineRangeBox.
+   */
+  riskNote?: string;
+  /** Кто контролирует это требование (для отображения). */
+  authority?: string;
   /** true, если объяснение обогащено AI. */
   aiEnriched?: boolean;
 }
@@ -307,3 +389,7 @@ export const DISCLAIMER =
 /** Значения по умолчанию, когда пользователь не уточнил (консервативно). */
 export const DEFAULT_COMPANY_TIER: CompanySizeTier = 'small';
 export const DEFAULT_REPEAT_OFFENDER = false;
+
+/** Надзорные органы (единые подписи для находок). */
+export const AUTHORITY_DVI = 'Datu valsts inspekcija (DVI, Латвия)';
+export const AUTHORITY_PTAC = 'Patērētāju tiesību aizsardzības centrs (PTAC, Латвия)';

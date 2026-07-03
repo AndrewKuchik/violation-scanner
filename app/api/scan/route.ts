@@ -71,10 +71,13 @@ export async function POST(request: Request) {
     // 2) Правила → находки
     let findings = runRules(evidence);
 
-    // 3) Scoring: уточняем severity и считаем диапазон штрафа на каждую находку
+    // 3) Scoring: уточняем severity; € считаем ТОЛЬКО для денежных находок (GDPR/DVI).
+    //    Немонетарные (monetary===false, напр. реквизиты/доступность — сфера PTAC)
+    //    остаются с riskNote вместо суммы.
     findings = findings.map((f) => {
       const severity = refineSeverity(f, evidence);
       const scored = { ...f, severity };
+      if (scored.monetary === false) return scored;
       return { ...scored, fineRange: computeFineRange(scored, tier, repeat) };
     });
 

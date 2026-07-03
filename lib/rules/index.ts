@@ -13,6 +13,13 @@ import { noRejectButtonRule } from './consent/noRejectButton';
 import { preTickedBoxesRule } from './consent/preTickedBoxes';
 import { missingPrivacyPolicyRule } from './consent/missingPrivacyPolicy';
 import { insecureTransportRule } from './consent/insecureTransport';
+// Бизнес/потребительские правила (вне сферы GDPR/DVI — monetary:false).
+import { imprintMissingRule } from './business/imprintMissing';
+import { staleOdrLinkRule } from './business/staleOdrLink';
+import { accessibilityStatementMissingRule } from './business/accessibilityStatementMissing';
+import { latvianLanguageMissingRule } from './business/latvianLanguageMissing';
+import { returnPolicyMissingRule } from './business/returnPolicyMissing';
+import { priceTransparencyRule } from './business/priceTransparency';
 
 /** Все правила v1. Каждое — чистая функция evaluate() с метаданными. */
 export const rules: Rule[] = [
@@ -24,6 +31,13 @@ export const rules: Rule[] = [
   preTickedBoxesRule,
   missingPrivacyPolicyRule,
   insecureTransportRule,
+  // --- Бизнес/потребительские (v1.5) ---
+  imprintMissingRule,
+  staleOdrLinkRule,
+  accessibilityStatementMissingRule,
+  latvianLanguageMissingRule,
+  returnPolicyMissingRule,
+  priceTransparencyRule,
 ];
 
 /** Прогоняет все правила по уликам и собирает сработавшие находки (null отбрасываем). */

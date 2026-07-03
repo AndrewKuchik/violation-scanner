@@ -91,6 +91,13 @@ export function FindingCard({ finding }: { finding: Finding }) {
                 {confirmationsLabel(evidenceCount)}
               </span>
             )}
+
+            {/* Немонетарная находка: маленькая подпись, кто контролирует. */}
+            {!finding.fineRange && finding.riskNote && finding.authority && (
+              <span className="mt-1.5 block text-xs text-slate-500 dark:text-slate-400">
+                🏛️ {finding.authority}
+              </span>
+            )}
           </span>
 
           {/* Заметный шеврон ▸ / ▾. */}
@@ -145,13 +152,39 @@ export function FindingCard({ finding }: { finding: Finding }) {
               </section>
             )}
 
-            {/* Диапазон штрафа — если посчитан для находки. */}
-            {finding.fineRange && (
+            {/* Возможные последствия: денежный диапазон ИЛИ качественный риск.
+                Денежный (fineRange) — как раньше. Немонетарные находки (нет €,
+                но есть riskNote) показываем нейтральным информационным блоком,
+                чтобы не путать с «штрафом» GDPR. */}
+            {finding.fineRange ? (
               <section>
                 <SectionTitle>Возможный штраф</SectionTitle>
                 <FineRangeBox range={finding.fineRange} />
               </section>
-            )}
+            ) : finding.riskNote ? (
+              <section>
+                <SectionTitle>Возможные последствия</SectionTitle>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
+                  <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                    {finding.riskNote}
+                  </p>
+                  {finding.authority && (
+                    <p className="mt-3 flex items-start gap-1.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                      <span aria-hidden="true" className="shrink-0">
+                        🏛️
+                      </span>
+                      <span>
+                        <span className="font-semibold">Контролирует:</span> {finding.authority}
+                      </span>
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-500">
+                    Это требование вне денежной оценки GDPR — точную сумму штрафа
+                    сканирование не рассчитывает, но регуляторный риск есть.
+                  </p>
+                </div>
+              </section>
+            ) : null}
 
             {/* Шаги по исправлению — нумерованный список. */}
             {finding.remediation && finding.remediation.length > 0 && (

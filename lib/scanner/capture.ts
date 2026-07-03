@@ -15,6 +15,11 @@ import { detectTrackers } from './evidence/trackers';
 import { analyzeTls } from './evidence/tls';
 import { collectLinks } from './evidence/links';
 import { detectConsentBanner } from './evidence/consentBanner';
+import { classifySiteType } from './evidence/siteType';
+import { collectImprint } from './evidence/imprint';
+import { collectAccessibility } from './evidence/accessibility';
+import { collectLanguage } from './evidence/language';
+import { collectConsumer } from './evidence/consumer';
 import type {
   ScanEvidence,
   CapturedRequest,
@@ -87,12 +92,45 @@ export async function captureEvidence(browser: Browser, requestedUrl: string): P
   const siteHostname = safeHostname(finalUrl) || safeHostname(requestedUrl) || '';
 
   // --- Коллекторы, которым нужен живой браузер (параллельно, каждый со страховкой). ---
-  const [cookies, storage, links, consentBanner] = await Promise.all([
-    collectCookies(context, siteHostname).catch(() => []),
-    collectStorage(page).catch(() => []),
-    collectLinks(page, finalUrl).catch(() => emptyLinks()),
-    detectConsentBanner(page).catch(() => inconclusiveBanner()),
-  ]);
+  const [cookies, storage, links, consentBanner, siteType, imprint, accessibility, language, consumer] =
+    await Promise.all([
+      collectCookies(context, siteHostname).catch(() => []),
+      collectStorage(page).catch(() => []),
+      collectLinks(page, finalUrl).catch(() => emptyLinks()),
+      detectConsentBanner(page).catch(() => inconclusiveBanner()),
+      classifySiteType(page, finalUrl).catch(() => ({
+        commercial: false,
+        ecommerce: false,
+        confidence: 'none' as const,
+        signals: [],
+      })),
+      collectImprint(page).catch(() => ({
+        companyName: false,
+        address: false,
+        email: false,
+        registrationNumber: false,
+        vatNumber: false,
+        found: [],
+      })),
+      collectAccessibility(page).catch(() => ({
+        statementLink: false,
+        htmlLangSet: false,
+        imagesMissingAlt: 0,
+        imagesTotal: 0,
+      })),
+      collectLanguage(page).catch(() => ({
+        htmlLang: null,
+        latvianAvailable: false,
+        hasLanguageSwitcher: false,
+      })),
+      collectConsumer(page).catch(() => ({
+        staleOdrLink: false,
+        returnPolicy: false,
+        mentions14Days: false,
+        pricesVisible: false,
+        priceTaxWording: false,
+      })),
+    ]);
 
   // --- Чистые коллекторы поверх пойманных запросов. ---
   const network = analyzeNetwork(requests, siteHostname);
@@ -111,7 +149,21 @@ export async function captureEvidence(browser: Browser, requestedUrl: string): P
     durationMs: Date.now() - navStart,
   };
 
-  return { meta, cookies, storage, network, trackers, consentBanner, links, tls };
+  return {
+    meta,
+    cookies,
+    storage,
+    network,
+    trackers,
+    consentBanner,
+    links,
+    tls,
+    siteType,
+    imprint,
+    accessibility,
+    language,
+    consumer,
+  };
 }
 
 function safeHostname(u: string): string {
