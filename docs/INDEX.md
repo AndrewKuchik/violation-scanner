@@ -7,11 +7,12 @@
 |---|---|
 | Понять, что за продукт вообще | `product/vision.md` |
 | Тронуть что-либо про штрафы, дисклеймеры, юр-формулировки | `product/legal-guardrails.md` ⚠️ обязательно |
+| Полный список требований законов Латвии/ЕС к сайту + какие проверки добавить | `product/legal-requirements.md` |
 | Верстать/менять отчёт (UI) | `product/ux-report.md` + `modules/report-ui.md` |
 | Понять стек и поток данных | `architecture/overview.md` |
 | Писать любой код (Next.js) | `architecture/nextjs-notes.md` ⚠️ версия нестандартная |
 | Сканер: браузер, cookies, трекеры, баннер | `modules/scanner.md` |
-| Движок правил / добавить правило | `modules/rules.md` + `product/legal-guardrails.md` |
+| Движок правил / добавить правило (16 правил: 8 consent + 8 business) | `modules/rules.md` + `product/legal-guardrails.md` |
 | Severity и расчёт диапазона штрафа | `modules/scoring.md` + `product/legal-guardrails.md` |
 | AI-объяснения (Claude) | `modules/ai-layer.md` |
 | Что делать дальше / что уже сделано | `roadmap/phases.md` ← СТАТУС здесь |

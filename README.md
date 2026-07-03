@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Violation Scanner
 
-## Getting Started
+Сканер сайта на нарушения GDPR / ePrivacy и требований Латвии/ЕС. Вставляешь URL →
+сервис открывает сайт в реальном браузере (Playwright), ловит что происходит
+*на самом деле* (куки/трекеры до согласия, баннер, политика, реквизиты компании,
+доступность, HTTPS) и выдаёт понятный отчёт: **что не так, где именно, во сколько может обойтись.**
 
-First, run the development server:
-
+## Быстрый старт
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npx playwright install chromium   # если браузер ещё не скачан
+npm run dev                        # → http://localhost:3000
 ```
+Открой http://localhost:3000, вставь адрес сайта, нажми «Проверить сайт».
+Остановить сервер — Ctrl+C.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+AI-объяснения (Claude) по умолчанию **выключены** — сервис работает без ключа.
+Включить: скопируй `.env.example` → `.env.local`, поставь `AI_EXPLANATIONS_ENABLED=true`
+и `ANTHROPIC_API_KEY`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Документация
+Не читай всё подряд. Начни с **`docs/INDEX.md`** (карта) и **`docs/roadmap/phases.md`**
+(текущий статус + что делать дальше). Правила проекта для ИИ-агентов — в `AGENTS.md`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Стек
+Next.js 16 (App Router, TS) · Playwright (chromium) · axe-core · Tailwind CSS ·
+Anthropic SDK (опц.). Без БД, запускается как обычный Node-процесс.
