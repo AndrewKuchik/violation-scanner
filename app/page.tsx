@@ -46,7 +46,8 @@ export default function Home() {
         body: JSON.stringify(body),
       });
 
-      let data: { ok?: boolean; report?: Report; error?: string } | null = null;
+      let data: { ok?: boolean; report?: Report; shareId?: string | null; error?: string } | null =
+        null;
       try {
         data = await res.json();
       } catch {
@@ -57,8 +58,14 @@ export default function Home() {
         throw new Error(data?.error || 'Не удалось проверить сайт. Попробуйте ещё раз.');
       }
 
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data.report));
-      router.push('/report');
+      if (data.shareId) {
+        // Отчёт сохранён на сервере — уходим на общий адрес, ссылкой можно делиться.
+        router.push(`/report/${data.shareId}`);
+      } else {
+        // Шаринг не подключён — открываем отчёт из памяти браузера, как раньше.
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data.report));
+        router.push('/report');
+      }
       // Спиннер намеренно не снимаем — идёт переход на страницу отчёта.
     } catch (err) {
       setError(

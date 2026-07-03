@@ -10,6 +10,7 @@ import { refineSeverity } from '@/lib/scoring/severity';
 import { computeFineRange } from '@/lib/scoring/fineRange';
 import { isAiEnabled, enrichFindings } from '@/lib/ai/explain';
 import { buildReport } from '@/lib/report/buildReport';
+import { saveReport } from '@/lib/report/store';
 import {
   DEFAULT_COMPANY_TIER,
   DEFAULT_REPEAT_OFFENDER,
@@ -105,7 +106,11 @@ export async function POST(request: Request) {
       aiMode,
     });
 
-    return NextResponse.json({ ok: true, report });
+    // Сохраняем отчёт для публичной ссылки (если подключён Blob). При выключенном
+    // шаринге / сбое — shareId = null, клиент откроет отчёт по-старому (sessionStorage).
+    const shareId = await saveReport(report);
+
+    return NextResponse.json({ ok: true, report, shareId });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : 'Скан не удался.' },
