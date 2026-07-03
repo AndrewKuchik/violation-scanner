@@ -254,6 +254,15 @@ export interface ConsumerEvidence {
   priceTaxWording: boolean;
 }
 
+/** Одна страница, которую сканер реально открыл (для честности охвата в отчёте). */
+export interface ScannedPage {
+  url: string;
+  /** Человекочитаемая подпись: 'Главная', 'Контакты', 'Условия / оферта' и т.п. */
+  label: string;
+  /** Успешно ли открылась (false = навигация упала/таймаут). */
+  ok: boolean;
+}
+
 /** Метаданные скана. Заполняются capture.ts + route (scannedAt/duration). */
 export interface ScanMeta {
   /** Запрошенный URL. */
@@ -268,6 +277,11 @@ export interface ScanMeta {
   /** Честная причина неполноты скана (или null). */
   incompleteReason?: string | null;
   durationMs?: number;
+  /**
+   * Батч 2: какие страницы реально просканированы (главная + до 3 внутренних).
+   * Показывается в отчёте — прозрачность охвата. Пусто/undefined у старых отчётов.
+   */
+  pagesScanned?: ScannedPage[];
 }
 
 /**

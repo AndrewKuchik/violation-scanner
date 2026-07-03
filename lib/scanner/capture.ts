@@ -22,10 +22,12 @@ import { collectLanguage } from './evidence/language';
 import { collectConsumer } from './evidence/consumer';
 import { runAxe } from './evidence/axeCheck';
 import { analyzePrivacyPolicy } from './evidence/privacyPolicy';
+import { collectAnchors, pickInternalPages, crawlSubpages, mergeSubpageEvidence } from './crawl';
 import type {
   ScanEvidence,
   CapturedRequest,
   ScanMeta,
+  ScannedPage,
   LinksEvidence,
   LinkCheck,
   ConsentBannerEvidence,
@@ -100,11 +102,12 @@ export async function captureEvidence(browser: Browser, requestedUrl: string): P
     links,
     consentBanner,
     siteType,
-    imprint,
-    accessibility,
-    language,
-    consumer,
+    imprintMain,
+    accessibilityMain,
+    languageMain,
+    consumerMain,
     axeResult,
+    mainAnchors,
   ] = await Promise.all([
       collectCookies(context, siteHostname).catch(() => []),
       collectStorage(page).catch(() => []),
@@ -143,20 +146,36 @@ export async function captureEvidence(browser: Browser, requestedUrl: string): P
         priceTaxWording: false,
       })),
       runAxe(page).catch(() => ({ checked: false, violations: [] })),
+      collectAnchors(page).catch(() => []),
     ]);
 
-  // Углублённый анализ страницы политики (открывает её отдельной вкладкой).
-  const privacyPolicy = await analyzePrivacyPolicy(
-    context,
-    links.privacyPolicy?.href ?? null,
-  ).catch(() => ({
-    analyzed: false,
-    url: links.privacyPolicy?.href ?? null,
-    controllerIdentity: false,
-    legalBasis: false,
-    dataSubjectRights: false,
-    contactInfo: false,
-  }));
+  // --- Батч 2: обход внутренних страниц + углублённый анализ политики (параллельно). ---
+  // Куки/трекеры/баннер/tls/axe остаются с главной; тут только ТЕКСТОВЫЕ коллекторы.
+  const targets = pickInternalPages(mainAnchors, finalUrl);
+  const [privacyPolicy, crawl] = await Promise.all([
+    // Углублённый анализ страницы политики (открывает её отдельной вкладкой).
+    analyzePrivacyPolicy(context, links.privacyPolicy?.href ?? null).catch(() => ({
+      analyzed: false,
+      url: links.privacyPolicy?.href ?? null,
+      controllerIdentity: false,
+      legalBasis: false,
+      dataSubjectRights: false,
+      contactInfo: false,
+    })),
+    crawlSubpages(context, targets).catch(() => ({ subpages: [], scanned: [] })),
+  ]);
+
+  // Объединяем текстовые улики главной и внутренних страниц по OR.
+  const { imprint, accessibility, language, consumer } = mergeSubpageEvidence(
+    { imprint: imprintMain, accessibility: accessibilityMain, language: languageMain, consumer: consumerMain },
+    crawl.subpages,
+  );
+
+  // Журнал охвата: главная + внутренние (для честности в отчёте).
+  const pagesScanned: ScannedPage[] = [
+    { url: finalUrl, label: 'Главная', ok: incompleteReason === null },
+    ...crawl.scanned,
+  ];
 
   // --- Чистые коллекторы поверх пойманных запросов. ---
   const network = analyzeNetwork(requests, siteHostname);
@@ -173,6 +192,7 @@ export async function captureEvidence(browser: Browser, requestedUrl: string): P
     botBlocked,
     incompleteReason,
     durationMs: Date.now() - navStart,
+    pagesScanned,
   };
 
   return {

@@ -21,6 +21,7 @@ export function ReportView({ report }: { report: Report }) {
   }, [meta.scannedAt]);
 
   const targetUrl = meta.finalUrl || meta.url;
+  const pagesScanned = meta.pagesScanned ?? [];
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
@@ -66,6 +67,46 @@ export function ReportView({ report }: { report: Report }) {
               Поэтому отсутствие находок не означает, что нарушений нет.
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Честность охвата: какие страницы реально просканированы (Батч 2). */}
+      {pagesScanned.length > 0 && (
+        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Просканированные страницы ({pagesScanned.length})
+          </div>
+          <ul className="space-y-1">
+            {pagesScanned.map((p, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm">
+                <span
+                  aria-hidden="true"
+                  className={`mt-0.5 shrink-0 ${p.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-500'}`}
+                >
+                  {p.ok ? '✓' : '×'}
+                </span>
+                <span className="min-w-0">
+                  <span className="font-medium text-zinc-700 dark:text-zinc-300">{p.label}</span>
+                  <a
+                    href={p.url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="ml-2 break-all text-xs text-blue-600 underline-offset-2 hover:underline dark:text-blue-400"
+                  >
+                    {p.url}
+                  </a>
+                  {!p.ok && (
+                    <span className="ml-1 text-xs text-zinc-400 dark:text-zinc-500">(не открылась)</span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Реквизиты, возврат, доступность и язык ищутся на всех этих страницах (найдено, если есть
+            хоть на одной). Куки, трекеры и баннер согласия проверяются только на главной — они про
+            состояние до согласия на входе.
+          </p>
         </div>
       )}
 
