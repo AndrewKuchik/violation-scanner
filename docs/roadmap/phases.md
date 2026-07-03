@@ -7,19 +7,19 @@
 | Фаза | Что делаем | Статус | Детали в |
 |---|---|---|---|
 | **Ф.0 Фундамент** | docs-структура, перенос плана, `.env.example`, git | ✅ | этот файл |
-| **Ф.1 Скелет** | Next.js + `/api/scan`, Playwright открывает URL → `{title, cookies}` | ⬜ | `modules/scanner.md` |
-| **Ф.2 Сбор улик** | cookies/storage/network/trackers/consentBanner/links/tls | ⬜ | `modules/scanner.md` |
-| **Ф.3 Движок правил** | 8 правил v1 → `Finding[]` + severity | ⬜ | `modules/rules.md` |
-| **Ф.4 Оценка штрафа** | калькулятор диапазона + уточняющие вопросы | ⬜ | `modules/scoring.md` |
-| **Ф.5 AI-объяснения** | один батч-вызов Claude, structured output | ⬜ | `modules/ai-layer.md` |
-| **Ф.6 UI отчёта** | скриншоты с подсветкой «где» + вёрстка | ⬜ | `modules/report-ui.md` |
+| **Ф.1 Скелет** | Next.js + `/api/scan`, Playwright открывает URL → `{title, cookies}` | ✅ | `modules/scanner.md` |
+| **Ф.2 Сбор улик** | cookies/storage/network/trackers/consentBanner/links/tls | ✅ | `modules/scanner.md` |
+| **Ф.3 Движок правил** | 8 правил v1 → `Finding[]` + severity | ✅ | `modules/rules.md` |
+| **Ф.4 Оценка штрафа** | калькулятор диапазона + уточняющие вопросы | ✅ | `modules/scoring.md` |
+| **Ф.5 AI-объяснения** | один батч-вызов Claude, structured output (по умолчанию выключено) | ✅ | `modules/ai-layer.md` |
+| **Ф.6 UI отчёта** | скриншоты с подсветкой «где» + вёрстка | ✅ | `modules/report-ui.md` |
 | **Ф.7+ Расширения** | v1.5 e-commerce, v2 доступность (EAA), суперфичи | ⬜ | `product/vision.md` |
 
 ## Что уже сделано (факт на 2026-07-03)
 - ✅ Каркас Next.js 16 + зависимости (Playwright, Anthropic SDK, Tailwind) установлены.
 - ✅ Playwright chromium скачан.
 - ✅ Стратегия и тех-план написаны, разложены по `docs/`.
-- ❌ Кода продукта ещё нет — `app/page.tsx` = стандартная заглушка Next.js.
+- ✅ **MVP собран (Ф.1–Ф.6):** полный пайплайн `/api/scan` (capture → 8 правил → severity+штраф → опц. AI → отчёт), UI формы и отчёта. `tsc --noEmit` чистый. Прогон на `example.com` — корректный отчёт, без ложных срабатываний.
 
 ## Ближайший шаг
-Начать **Ф.1**: создать `app/api/scan/route.ts`, который принимает URL, открывает его в Playwright и возвращает заголовок + cookies. Цель — доказать, что связка работает.
+Ручной прогон на 3–5 реальных сайтах (в т.ч. интернет-магазин ЕС) для калибровки правил и текстов. Осторожно с сайтами за Cloudflare (delfi.lv и т.п.) — они медленные/блокируют headless; предохранитель `SCAN_TIMEOUT_MS` в `route.ts` не даст скану зависнуть. Затем — расширения Ф.7+ (e-commerce-правила v1.5).
