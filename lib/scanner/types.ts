@@ -185,7 +185,24 @@ export interface ImprintEvidence {
   found: { kind: 'company' | 'address' | 'email' | 'reg' | 'vat'; sample: string }[];
 }
 
-/** Доступность (EAA) — заявление о доступности + базовые авто-сигналы. */
+/** Одно нарушение доступности от axe-core. */
+export interface AxeViolation {
+  id: string;
+  /** 'critical' | 'serious' | 'moderate' | 'minor'. */
+  impact: string;
+  /** Человеческое описание проблемы. */
+  help: string;
+  /** Сколько элементов затронуто. */
+  nodes: number;
+}
+
+/** Результат axe-core (реальная проверка WCAG, подмножество). */
+export interface AxeResult {
+  checked: boolean;
+  violations: AxeViolation[];
+}
+
+/** Доступность (EAA) — заявление о доступности + базовые авто-сигналы + axe. */
 export interface AccessibilityEvidence {
   statementLink: boolean;
   statementHref?: string | null;
@@ -194,6 +211,26 @@ export interface AccessibilityEvidence {
   /** Картинок без alt (частичный сигнал WCAG, не полное соответствие). */
   imagesMissingAlt: number;
   imagesTotal: number;
+  /** Реальная проверка axe-core (подмножество WCAG: контраст, alt, метки, заголовки). */
+  axe?: AxeResult;
+}
+
+/**
+ * Качество политики конфиденциальности (сверх наличия ссылки).
+ * Открываем саму страницу политики и ищем ключевые обязательные элементы GDPR ст.13.
+ */
+export interface PrivacyPolicyEvidence {
+  /** Удалось ли открыть и прочитать страницу политики. */
+  analyzed: boolean;
+  url?: string | null;
+  /** Указан контролёр данных (кто обрабатывает: название/компания). */
+  controllerIdentity: boolean;
+  /** Указано правовое основание обработки (согласие/договор/законный интерес — GDPR ст.6). */
+  legalBasis: boolean;
+  /** Описаны права субъекта данных (доступ, удаление, возражение — GDPR ст.15–21). */
+  dataSubjectRights: boolean;
+  /** Есть контакт для вопросов о данных (email/DPO). */
+  contactInfo: boolean;
 }
 
 /** Латышская версия — Valsts valodas likums. */
@@ -254,6 +291,8 @@ export interface ScanEvidence {
   accessibility: AccessibilityEvidence;
   language: LanguageEvidence;
   consumer: ConsumerEvidence;
+  /** Качество страницы политики конфиденциальности (углублённая проверка). */
+  privacyPolicy: PrivacyPolicyEvidence;
 }
 
 // ---------------------------------------------------------------------------

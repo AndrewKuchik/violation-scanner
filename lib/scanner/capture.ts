@@ -20,6 +20,8 @@ import { collectImprint } from './evidence/imprint';
 import { collectAccessibility } from './evidence/accessibility';
 import { collectLanguage } from './evidence/language';
 import { collectConsumer } from './evidence/consumer';
+import { runAxe } from './evidence/axeCheck';
+import { analyzePrivacyPolicy } from './evidence/privacyPolicy';
 import type {
   ScanEvidence,
   CapturedRequest,
@@ -92,8 +94,18 @@ export async function captureEvidence(browser: Browser, requestedUrl: string): P
   const siteHostname = safeHostname(finalUrl) || safeHostname(requestedUrl) || '';
 
   // --- Коллекторы, которым нужен живой браузер (параллельно, каждый со страховкой). ---
-  const [cookies, storage, links, consentBanner, siteType, imprint, accessibility, language, consumer] =
-    await Promise.all([
+  const [
+    cookies,
+    storage,
+    links,
+    consentBanner,
+    siteType,
+    imprint,
+    accessibility,
+    language,
+    consumer,
+    axeResult,
+  ] = await Promise.all([
       collectCookies(context, siteHostname).catch(() => []),
       collectStorage(page).catch(() => []),
       collectLinks(page, finalUrl).catch(() => emptyLinks()),
@@ -130,7 +142,21 @@ export async function captureEvidence(browser: Browser, requestedUrl: string): P
         pricesVisible: false,
         priceTaxWording: false,
       })),
+      runAxe(page).catch(() => ({ checked: false, violations: [] })),
     ]);
+
+  // Углублённый анализ страницы политики (открывает её отдельной вкладкой).
+  const privacyPolicy = await analyzePrivacyPolicy(
+    context,
+    links.privacyPolicy?.href ?? null,
+  ).catch(() => ({
+    analyzed: false,
+    url: links.privacyPolicy?.href ?? null,
+    controllerIdentity: false,
+    legalBasis: false,
+    dataSubjectRights: false,
+    contactInfo: false,
+  }));
 
   // --- Чистые коллекторы поверх пойманных запросов. ---
   const network = analyzeNetwork(requests, siteHostname);
@@ -160,9 +186,10 @@ export async function captureEvidence(browser: Browser, requestedUrl: string): P
     tls,
     siteType,
     imprint,
-    accessibility,
+    accessibility: { ...accessibility, axe: axeResult },
     language,
     consumer,
+    privacyPolicy,
   };
 }
 

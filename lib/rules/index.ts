@@ -20,6 +20,9 @@ import { accessibilityStatementMissingRule } from './business/accessibilityState
 import { latvianLanguageMissingRule } from './business/latvianLanguageMissing';
 import { returnPolicyMissingRule } from './business/returnPolicyMissing';
 import { priceTransparencyRule } from './business/priceTransparency';
+// Углублённые проверки (Батч 2): содержание политики + реальная доступность (axe).
+import { privacyPolicyQualityRule } from './business/privacyPolicyQuality';
+import { accessibilityIssuesRule } from './business/accessibilityIssues';
 
 /** Все правила v1. Каждое — чистая функция evaluate() с метаданными. */
 export const rules: Rule[] = [
@@ -38,6 +41,9 @@ export const rules: Rule[] = [
   latvianLanguageMissingRule,
   returnPolicyMissingRule,
   priceTransparencyRule,
+  // --- Углублённые ---
+  privacyPolicyQualityRule,
+  accessibilityIssuesRule,
 ];
 
 /** Прогоняет все правила по уликам и собирает сработавшие находки (null отбрасываем). */
