@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import type { CompanySizeTier, Report } from '@/lib/scanner/types';
 import { ScanForm } from '@/components/ScanForm';
 import { QualifyingQuestions } from '@/components/QualifyingQuestions';
+import { ScanProgress } from '@/components/ScanProgress';
 
 /** Ключ, под которым отчёт передаётся на страницу /report. */
 const STORAGE_KEY = 'violation-scanner:last-report';
@@ -67,20 +68,11 @@ export default function Home() {
     }
   }
 
-  // Экран сканирования (v1 — простой спиннер + статус).
+  // Экран сканирования: живой список этапов (чтобы ожидание не выглядело зависшим).
   if (loading) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center px-6 py-16">
-        <div className="flex flex-col items-center gap-6 text-center">
-          <div
-            className="h-12 w-12 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100"
-            aria-hidden="true"
-          />
-          <div className="flex flex-col gap-1" role="status" aria-live="polite">
-            <p className="text-lg font-medium text-zinc-900 dark:text-zinc-100">Открываю сайт…</p>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Это занимает 10–30 секунд</p>
-          </div>
-        </div>
+        <ScanProgress />
       </main>
     );
   }
