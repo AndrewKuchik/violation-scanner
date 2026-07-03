@@ -26,9 +26,19 @@ export function blobTokenKeyNames(): string[] {
   return Object.keys(process.env).filter((k) => /BLOB|READ_WRITE_TOKEN$/i.test(k));
 }
 
-/** Включён ли шаринг (подключён ли Blob-стор). */
+/**
+ * Включён ли шаринг. В новой версии Vercel Blob токена может не быть — авторизация
+ * идёт по BLOB_STORE_ID автоматически в среде Vercel. Поэтому включаем, если есть
+ * либо токен, либо store id.
+ */
 export function isShareEnabled(): boolean {
-  return Boolean(resolveBlobToken());
+  return Boolean(resolveBlobToken() || process.env.BLOB_STORE_ID);
+}
+
+/** Опции авторизации Blob: явный токен, если он есть; иначе — авто-авторизация SDK. */
+function tokenOpts(): { token?: string } {
+  const token = resolveBlobToken();
+  return token ? { token } : {};
 }
 
 /** Папка в Blob, где лежат отчёты. */
@@ -64,7 +74,7 @@ export async function saveReportDebug(
       access: 'public',
       addRandomSuffix: false, // предсказуемый путь reports/<id>.json
       contentType: 'application/json',
-      token: resolveBlobToken(),
+      ...tokenOpts(),
     });
     return { id, enabled: true, error: null };
   } catch (e) {
@@ -80,7 +90,7 @@ export async function loadReport(id: string): Promise<Report | null> {
   if (!ID_RE.test(id)) return null;
   try {
     // Находим публичный URL блоба по его пути (базовый адрес стора не хардкодим).
-    const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1, token: resolveBlobToken() });
+    const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1, ...tokenOpts() });
     const blob = blobs.find((b) => b.pathname === `${PREFIX}${id}.json`);
     if (!blob) return null;
     const res = await fetch(blob.url, { cache: 'no-store' });
