@@ -10,7 +10,7 @@ import { refineSeverity } from '@/lib/scoring/severity';
 import { computeFineRange } from '@/lib/scoring/fineRange';
 import { isAiEnabled, enrichFindings } from '@/lib/ai/explain';
 import { buildReport } from '@/lib/report/buildReport';
-import { saveReportDebug } from '@/lib/report/store';
+import { saveReportDebug, blobTokenKeyNames } from '@/lib/report/store';
 import {
   DEFAULT_COMPANY_TIER,
   DEFAULT_REPEAT_OFFENDER,
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
       ok: true,
       report,
       shareId,
-      shareDebug: { enabled: saved.enabled, error: saved.error },
+      shareDebug: { enabled: saved.enabled, error: saved.error, envKeys: blobTokenKeyNames() },
     });
   } catch (err) {
     return NextResponse.json(

@@ -10,9 +10,25 @@
 import { put, list } from '@vercel/blob';
 import type { Report } from '@/lib/scanner/types';
 
+/**
+ * Токен доступа к Blob. Обычно это BLOB_READ_WRITE_TOKEN, но при нескольких
+ * сторах / особом имени Vercel кладёт его как <ИМЯ_СТОРА>_READ_WRITE_TOKEN.
+ * Поэтому берём первый подходящий ключ окружения.
+ */
+export function resolveBlobToken(): string | undefined {
+  if (process.env.BLOB_READ_WRITE_TOKEN) return process.env.BLOB_READ_WRITE_TOKEN;
+  const key = Object.keys(process.env).find((k) => /READ_WRITE_TOKEN$/i.test(k));
+  return key ? process.env[key] : undefined;
+}
+
+/** Имена ключей окружения, похожих на токен Blob (только имена, без значений). */
+export function blobTokenKeyNames(): string[] {
+  return Object.keys(process.env).filter((k) => /BLOB|READ_WRITE_TOKEN$/i.test(k));
+}
+
 /** Включён ли шаринг (подключён ли Blob-стор). */
 export function isShareEnabled(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  return Boolean(resolveBlobToken());
 }
 
 /** Папка в Blob, где лежат отчёты. */
@@ -48,6 +64,7 @@ export async function saveReportDebug(
       access: 'public',
       addRandomSuffix: false, // предсказуемый путь reports/<id>.json
       contentType: 'application/json',
+      token: resolveBlobToken(),
     });
     return { id, enabled: true, error: null };
   } catch (e) {
@@ -63,7 +80,7 @@ export async function loadReport(id: string): Promise<Report | null> {
   if (!ID_RE.test(id)) return null;
   try {
     // Находим публичный URL блоба по его пути (базовый адрес стора не хардкодим).
-    const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1 });
+    const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1, token: resolveBlobToken() });
     const blob = blobs.find((b) => b.pathname === `${PREFIX}${id}.json`);
     if (!blob) return null;
     const res = await fetch(blob.url, { cache: 'no-store' });
