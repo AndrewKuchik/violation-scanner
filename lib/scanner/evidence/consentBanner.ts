@@ -365,16 +365,36 @@ async function findGenericIn(scope: Frame, inIframe: boolean): Promise<ConsentBa
         const r = node.getBoundingClientRect();
         return r.width > 1 && r.height > 1;
       };
-      const hasVisibleButton = (node: Element): boolean => {
-        if (Array.from(node.querySelectorAll(buttonSel)).some((b) => isVisible(b))) return true;
-        // Поверхностно заглядываем в открытые shadow-root.
-        const hosts = node.querySelectorAll('*');
-        return Array.from(hosts).some((h) => {
-          const sr = h.shadowRoot;
-          if (!sr) return false;
-          return Array.from(sr.querySelectorAll(buttonSel)).some((b) => isVisible(b));
-        });
+      const getLabel = (node: Element): string => {
+        const el = node as HTMLElement;
+        const aria = node.getAttribute('aria-label') || '';
+        const text = el.innerText || node.textContent || '';
+        const val = (node as HTMLInputElement).value || '';
+        return (aria || text || val).replace(/\s+/g, ' ').trim().toLowerCase();
       };
+      // Подпись кнопки РЕАЛЬНОГО действия согласия (принять/отклонить/настроить), EN/LV/RU.
+      const actionRe =
+        /accept|agree|allow|got it|understand|enable|okay|\byes\b|decline|reject|deny|refuse|disagree|only necessary|necessary only|opt.?out|manage|setting|preference|customi|piekr|atļauj|atlauj|noraid|atteik|nepiekr|iestat|pārvald|izvēl|прин|согла|разреш|хорошо|откл|отказ|не согл|настрой|управл/i;
+
+      const visibleButtons = (node: Element): Element[] => {
+        const list: Element[] = [];
+        Array.from(node.querySelectorAll(buttonSel)).forEach((b) => {
+          if (isVisible(b)) list.push(b);
+        });
+        // Поверхностно заглядываем в открытые shadow-root.
+        node.querySelectorAll('*').forEach((h) => {
+          const sr = h.shadowRoot;
+          if (sr) {
+            Array.from(sr.querySelectorAll(buttonSel)).forEach((b) => {
+              if (isVisible(b)) list.push(b);
+            });
+          }
+        });
+        return list;
+      };
+      const hasVisibleButton = (node: Element): boolean => visibleButtons(node).length > 0;
+      const hasActionButton = (node: Element): boolean =>
+        visibleButtons(node).some((b) => actionRe.test(getLabel(b)));
 
       const candidates = new Set<Element>();
       document
@@ -391,8 +411,14 @@ async function findGenericIn(scope: Frame, inIframe: boolean): Promise<ConsentBa
         if (s.position === 'fixed' || s.position === 'sticky') candidates.add(e);
       });
 
-      let best: Element | null = null;
-      let bestArea = Infinity;
+      // Предпочитаем самый компактный контейнер, где ЕСТЬ кнопка ДЕЙСТВИЯ согласия
+      // (принять/отклонить). Так фрагментированный баннер (текст и кнопки в разных
+      // соседних блоках) не даёт ложное «нет кнопки отказа». Фолбэк — самый
+      // компактный контейнер с любой кнопкой (на случай нестандартной вёрстки).
+      let bestAction: Element | null = null;
+      let bestActionArea = Infinity;
+      let bestAny: Element | null = null;
+      let bestAnyArea = Infinity;
       candidates.forEach((el) => {
         if (!isVisible(el)) return;
         const text = ((el as HTMLElement).innerText || '').trim();
@@ -401,15 +427,19 @@ async function findGenericIn(scope: Frame, inIframe: boolean): Promise<ConsentBa
         if (!hasVisibleButton(el)) return;
         const r = el.getBoundingClientRect();
         const area = r.width * r.height;
-        // Предпочитаем самый компактный контейнер (сам баннер, а не оверлей всей страницы).
-        if (area < bestArea) {
-          best = el;
-          bestArea = area;
+        if (area < bestAnyArea) {
+          bestAny = el;
+          bestAnyArea = area;
+        }
+        if (hasActionButton(el) && area < bestActionArea) {
+          bestAction = el;
+          bestActionArea = area;
         }
       });
 
+      const best = (bestAction || bestAny) as Element | null;
       if (!best) return { found: false };
-      (best as Element).setAttribute('data-vs-consent-banner', '1');
+      best.setAttribute('data-vs-consent-banner', '1');
       return { found: true };
     });
   } catch {
